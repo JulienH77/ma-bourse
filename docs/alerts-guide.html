@@ -1,0 +1,195 @@
+<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Activer les alertes · Folio</title>
+<style>*{box-sizing:border-box}body{margin:0;background:#f5f7fb;color:#18283f;font:16px/1.55 "DM Sans",system-ui,sans-serif}main{max-width:800px;margin:auto;padding:32px 18px 64px}header,section{margin:22px 0;padding:clamp(20px,4vw,38px);border-radius:18px;background:white;border:1px solid #d6dfed}header{background:#112239;color:white}h1{font:500 clamp(32px,6vw,48px)/1.1 Georgia,serif;margin:8px 0}h2{font-size:21px;margin:0 0 12px}p{margin:10px 0}a{color:#245caa}label{display:block;margin-top:12px}input{width:100%;font:inherit;padding:9px 12px;border:1px solid #acbbcf;border-radius:7px}output{display:block;padding:16px;margin-top:16px;border-radius:8px;background:#eaf1ff;font-weight:600}small{font-size:14px}li{margin:8px 0}</style>
+<style>pre,table{display:block;overflow:auto}td,th{padding:7px;text-align:left;border-bottom:1px solid #ddd}code{overflow-wrap:anywhere}pre{padding:12px;background:#f4f6fa}</style><main><a href="./index.html#alerts">Retour aux alertes</a><section><h1 id="flux-privé-et-alertes-de-clôture">Flux privé et alertes de
+clôture</h1>
+<p>Le mode local produit un fichier importable. Le mode GitHub Actions
+conserve ce même fichier dans Git et peut envoyer une alerte à ton chat
+Telegram personnel. Les cours proviennent de l’API
+<code>time_series</code> de Twelve Data, en intervalle
+<code>1day</code>. <a href="https://twelvedata.com/docs">Documentation
+Twelve Data</a></p>
+<h2 id="générer-un-fichier-privé">Générer un fichier privé</h2>
+<p>Depuis la racine du projet, avec Python 3.11 ou ultérieur et la clé
+dans la variable d’environnement <code>TWELVE_DATA_API_KEY</code>, lance
+la commande suivante. L’option <code>--output</code> permet de garder
+les cours hors du dépôt. Le script utilise uniquement la bibliothèque
+standard.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> scripts/market.py <span class="at">--output</span> <span class="st">&quot;</span><span class="va">$HOME</span><span class="st">/market.json&quot;</span></span></code></pre></div>
+<p>Sans option, le script écrit dans <code>docs/market.json</code>. Le
+mode local ne fait aucun commit et n’envoie aucun message. Exemple de
+format avec des valeurs fictives :</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;quotes&quot;</span><span class="fu">:{</span><span class="dt">&quot;NVDA&quot;</span><span class="fu">:</span><span class="ot">[</span><span class="fu">{</span><span class="dt">&quot;date&quot;</span><span class="fu">:</span><span class="st">&quot;2026-11-16&quot;</span><span class="fu">,</span><span class="dt">&quot;price&quot;</span><span class="fu">:</span><span class="dv">100</span><span class="fu">,</span><span class="dt">&quot;fx&quot;</span><span class="fu">:</span><span class="fl">1.08</span><span class="fu">}</span><span class="ot">]</span><span class="fu">},</span><span class="dt">&quot;currencies&quot;</span><span class="fu">:{</span><span class="dt">&quot;NVDA&quot;</span><span class="fu">:</span><span class="st">&quot;USD&quot;</span><span class="fu">},</span><span class="dt">&quot;updated&quot;</span><span class="fu">:</span><span class="st">&quot;2026-11-17T02:37:00+00:00&quot;</span><span class="fu">}</span></span></code></pre></div>
+<p>Chaque série contient jusqu’à 252 séances par ordre chronologique.
+<code>price</code> est la clôture ajustée des splits dans la devise du
+titre. <code>fx</code> est la clôture de la paire EUR/devise <strong>à
+la même date</strong>. Ainsi, <code>price / fx</code> donne le prix en
+euros. Pour un titre en euros, <code>fx = 1</code>. Les clôtures du
+titre et du change peuvent avoir des horaires différents. Un change
+manquant fait échouer la mise à jour entière et préserve le fichier
+précédent. <code>updated</code> indique la dernière modification des
+données en UTC.</p>
+<h2 id="activer-github-actions">Activer GitHub Actions</h2>
+<ol type="1">
+<li>Place les fichiers extraits du ZIP à la racine d’un <strong>dépôt
+privé</strong>. Le workflow Pages fourni retire <code>market.json</code>
+du site tant que <code>ALLOW_PUBLIC_FEED</code> est désactivé. Si tu
+utilises un autre hébergeur, vérifie que le fichier est également exclu.
+Les commits gardent les versions antérieures du flux.</li>
+<li>Dans <strong>Settings → Secrets and variables → Actions</strong>,
+configure les entrées ci-dessous. Autorise le workflow à écrire sur la
+branche par défaut pour conserver le flux et les réservations
+d’alerte.</li>
+<li>Dans <strong>Actions → Flux de marché → Run workflow</strong>,
+sélectionne la branche par défaut. Le calendrier prévoit ensuite une
+exécution du mardi au samedi à 02 h 37 UTC. Le script demande les
+données jusqu’à la veille UTC incluse pour éviter une séance américaine
+en cours. Les jours fériés, une clôture déjà traitée ne redéclenche
+rien.</li>
+</ol>
+<table>
+<thead>
+<tr class="header">
+<th>Entrée</th>
+<th>Type</th>
+<th>Effet</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>TWELVE_DATA_API_KEY</code></td>
+<td>Secret</td>
+<td>Clé Twelve Data ayant accès aux titres et aux paires de devises
+concernés.</td>
+</tr>
+<tr class="even">
+<td><code>WATCH_RULES</code></td>
+<td>Secret</td>
+<td>Exemple : <code>{"NVDA":{"up":5,"down":3,"currency":"USD"}}</code>.
+Sans secret, cette règle s’applique. Les champs omis prennent les mêmes
+valeurs par défaut.</td>
+</tr>
+<tr class="odd">
+<td><code>STORE_MARKET_FEED</code></td>
+<td>Variable</td>
+<td><code>true</code> autorise le stockage dans le dépôt. Sinon seul le
+test s’exécute.</td>
+</tr>
+<tr class="even">
+<td><code>ALLOW_PUBLIC_FEED</code></td>
+<td>Variable</td>
+<td><code>true</code> autorise le stockage dans un dépôt public ou
+interne et l’inclusion du flux dans le site Pages, même si le dépôt est
+privé. Vérifie les droits avant activation.</td>
+</tr>
+<tr class="odd">
+<td><code>ENABLE_TELEGRAM</code></td>
+<td>Variable</td>
+<td><code>true</code> active les envois réels. Par défaut les alertes
+restent désactivées.</td>
+</tr>
+<tr class="even">
+<td><code>TELEGRAM_BOT_TOKEN</code></td>
+<td>Secret</td>
+<td>Jeton du bot personnel créé avec BotFather, requis pour les
+envois.</td>
+</tr>
+<tr class="odd">
+<td><code>TELEGRAM_CHAT_ID</code></td>
+<td>Secret</td>
+<td>Identifiant du chat destinataire. Ouvre le chat et démarre le bot
+avant activation.</td>
+</tr>
+</tbody>
+</table>
+<p>Vérifie que ton abonnement autorise cet usage personnel, le stockage
+de l’historique Git et la durée de conservation. Une diffusion à des
+tiers, y compris via Pages ou un canal Telegram partagé, nécessite des
+droits adaptés. Le consentement technique du workflow ne confère aucun
+droit de redistribution. <a
+href="https://twelvedata.com/terms">Conditions de Twelve Data</a></p>
+<h2 id="interpréter-une-alerte-et-traiter-un-échec">Interpréter une
+alerte et traiter un échec</h2>
+<p>À chaque passage, le script compare les <strong>deux dernières
+clôtures disponibles</strong> dans la devise d’origine. Une variation de
++5 % ou −3 % atteint les seuils par défaut, bornes incluses. La première
+activation évalue aussi la dernière séance. Après plusieurs jours
+d’arrêt, seule la dernière variation est examinée. Les taux de change
+servent à la valorisation en euros.</p>
+<p>Avant chaque envoi, le workflow pousse dans
+<code>.github/market-alerts.json</code> la dernière date réservée pour
+le symbole. Une relance ou une correction de cours ne renvoie pas
+l’alerte du même jour. Si le push échoue, rien ne part. Si Telegram
+échoue après réservation, le job passe en échec et la relance saute
+cette alerte. Cela évite les doublons en cas de réponse perdue, au prix
+d’une alerte potentiellement manquée. Vérifie le chat avant toute
+reprise manuelle. <a
+href="https://core.telegram.org/bots/api#sendmessage">API
+Telegram</a></p>
+<p>Consulte le job en échec dans Actions. Pour une erreur du
+fournisseur, vérifie la clé, la devise, les droits et le quota (une
+requête par symbole et une par devise distincte hors EUR). Pour un refus
+Git, vérifie les permissions et les protections de branche, puis
+relance. Un lancement qui ne modifie aucune cotation conserve le fichier
+et son horodatage.</p>
+<h2 id="vérification-hors-ligne">Vérification hors ligne</h2>
+<div class="sourceCode" id="cb3"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> <span class="at">-m</span> unittest discover <span class="at">-s</span> scripts <span class="at">-p</span> <span class="st">&#39;test_market.py&#39;</span> <span class="at">-v</span></span></code></pre></div>
+<p>Les tests utilisent des cours fictifs, bloquent les sockets et
+simulent Telegram. Aucune clé ni connexion n’est nécessaire.</p>
+<h2 id="recevoir-une-notification-pendant-la-séance">Recevoir une
+notification pendant la séance</h2>
+<p>Pour surveiller Nvidia pendant que la Bourse est ouverte, utilise le
+workflow <strong>Alertes en séance</strong> dans un <strong>dépôt
+privé</strong>. Si ton site est public, tu peux conserver une deuxième
+copie privée pour la surveillance. Les notifications de séance
+fonctionnent indépendamment de la publication de cours et des alertes de
+clôture.</p>
+<ol type="1">
+<li>Dans Telegram, crée ton bot avec <strong>@BotFather →
+/newbot</strong>. Ouvre ensuite une conversation privée avec ce bot,
+appuie sur <strong>Démarrer</strong> et écris-lui un message. Pour
+retrouver ton identifiant de chat, consulte la méthode officielle <a
+href="https://core.telegram.org/bots/api#getupdates">getUpdates</a> en
+local avec ton jeton. Prends le champ <code>message.chat.id</code> de ta
+propre conversation.</li>
+<li>Dans les secrets GitHub Actions, enregistre
+<code>TWELVE_DATA_API_KEY</code>, <code>TELEGRAM_BOT_TOKEN</code>,
+<code>TELEGRAM_CHAT_ID</code> et <code>WATCH_RULES</code>. Depuis
+l’onglet Alertes du site, exporte les règles et colle le
+<strong>contenu</strong> du JSON dans ce dernier secret. Toute
+modification locale des seuils doit y être recopiée.</li>
+<li>Crée la <strong>variable</strong> Actions
+<code>ENABLE_INTRADAY</code> avec la valeur <code>true</code>. Autorise
+l’écriture du workflow dans la branche principale. Lance <strong>Actions
+→ Alertes en séance → Run workflow</strong> pour vérifier la
+configuration.</li>
+<li>La planification demande un passage toutes les 30 minutes en
+semaine, à :13 et :43 de 08 h à 21 h UTC incluses. En France
+métropolitaine, cela correspond à 09 h 13–22 h 43 en hiver et 10 h 13–23
+h 43 en été. Le créneau couvre la séance américaine ordinaire. Pour les
+places hors de ce créneau, adapte le calendrier du workflow.</li>
+</ol>
+<p>Le message compare le cours courant à la clôture précédente
+<strong>dans la devise du titre</strong>. Une variation du dollar seul
+ne déclenche pas le seuil Nvidia. Le programme exige un marché ouvert et
+un cours horodaté de moins de 30 minutes. Il envoie au plus un message
+par titre, sens et jour après un envoi confirmé et enregistré. Si la
+remise est ambiguë ou si Git échoue juste après l’envoi, une relance
+peut doubler le message. L’heure française du cours figure dans chaque
+alerte. GitHub peut retarder les passages et un mouvement entre deux
+relevés peut passer inaperçu.</p>
+<p>Le nombre maximal de requêtes planifiées est de 28 par jour ouvré et
+par titre. Vérifie le quota de l’API, l’accès aux cotations de séance et
+ton solde de minutes Actions avant activation. Une exécution réussie
+sans message est normale si aucun seuil n’a été franchi. Pour arrêter,
+passe <code>ENABLE_INTRADAY</code> à <code>false</code>. Pour arrêter
+également les alertes de clôture, passe <code>ENABLE_TELEGRAM</code> à
+<code>false</code>.</p>
+<p>Si le flux est conservé en privé, télécharge le fichier brut
+<code>docs/market.json</code> depuis ton dépôt et importe-le dans
+<strong>Cotations</strong>. Pour une mise à jour automatique dans la
+page web, le fichier doit être présent sur le même site et sa diffusion
+autorisée. <a
+href="https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule">Planification
+GitHub Actions</a></p>
+</section></main></html>

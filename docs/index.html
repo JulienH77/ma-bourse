@@ -1,0 +1,7 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Folio — Tableau de bord</title><link rel="stylesheet" href="style.css"><script defer src="ledger.js"></script><script defer src="provider.js"></script><script defer src="ui.js"></script></head>
+<body><aside><a class="brand" href="#dashboard"><span class="brandmark">▰</span> Folio<span class="brand-dot">.</span></a><div class="navlabel">ESPACE DE GESTION</div><nav id="nav"></nav><div class="sidefoot"><i></i> Stockage local</div></aside>
+<main><header><div class="crumb">Espace personnel <span>/</span> <b id="crumb"></b></div><div class="switch" aria-label="Portefeuille actif"><button data-mode="demo">Démo</button><button data-mode="real">Réel</button></div></header>
+<div id="notice" role="status"></div><div class="heading"><div><div class="eyebrow"><span class="statusdot"></span><span id="environment"></span></div><h1 id="title"></h1><p id="subtitle"></p></div><button class="primary" id="add">＋ &nbsp; Opération</button></div><div id="view"></div></main>
+<dialog id="modal"><div class="modalhead"><h2 id="modalTitle"></h2><button id="close" aria-label="Fermer">×</button></div><form id="form"><div id="fields"></div><p class="error" id="error" role="alert"></p><button class="primary" id="submit">Enregistrer</button></form></dialog><input id="restoreFile" type="file" accept="application/json,.json" hidden>
+</body></html>
