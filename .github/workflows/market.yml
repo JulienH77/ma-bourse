@@ -1,0 +1,49 @@
+name: Flux de marché
+on:
+  schedule:
+    - cron: '37 2 * * 2-6'
+  workflow_dispatch:
+
+permissions: {}
+concurrency:
+  group: market-feed
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 -m unittest discover -s scripts -p 'test_market.py' -v
+
+  update:
+    needs: verify
+    if: >-
+      github.ref_name == github.event.repository.default_branch &&
+      vars.STORE_MARKET_FEED == 'true' &&
+      (github.event.repository.private == true || vars.ALLOW_PUBLIC_FEED == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          python3 scripts/market.py --automated
+        env:
+          REPO_VISIBILITY: ${{ github.event.repository.private && 'private' || 'public' }}
+          STORE_MARKET_FEED: ${{ vars.STORE_MARKET_FEED }}
+          ALLOW_PUBLIC_FEED: ${{ vars.ALLOW_PUBLIC_FEED }}
+          ENABLE_TELEGRAM: ${{ vars.ENABLE_TELEGRAM }}
+          WATCH_RULES: ${{ secrets.WATCH_RULES }}
+          TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
