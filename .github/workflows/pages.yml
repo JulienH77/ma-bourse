@@ -1,0 +1,51 @@
+name: Publier Folio
+on:
+  push:
+    branches: [main, master]
+    paths: ['docs/**', '.github/workflows/pages.yml']
+  workflow_run:
+    workflows: ['Flux de marché']
+    types: [completed]
+  workflow_dispatch:
+
+permissions: {}
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      github.ref_name == github.event.repository.default_branch &&
+      (github.event_name != 'workflow_run' ||
+       (github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_branch == github.event.repository.default_branch &&
+        vars.STORE_MARKET_FEED == 'true'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - name: Préparer le site
+        run: |
+          mkdir _site
+          cp -a docs/. _site/
+          if [ "${ALLOW_PUBLIC_FEED}" != "true" ]; then
+            rm -f _site/market.json
+          fi
+        env:
+          ALLOW_PUBLIC_FEED: ${{ vars.ALLOW_PUBLIC_FEED }}
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
